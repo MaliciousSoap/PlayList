@@ -60,20 +60,22 @@ def wipeMetadata(fname):
 
 def download(links):
     for link in links:
-        vid = YouTube(link)
-        print("downloading " + vid.title)
-        soundStreams = vid.streams.filter(only_audio=True)
-        firstStream = str(soundStreams[0]).split(" ") #Get first stream
-        itag = firstStream[1][6:-1]#Get itag value
-        vid.streams.get_by_itag(itag).download()
-        fn = ""
-        for letter in vid.title:
-            if letter in settings['AllowedCharacters']:
-                fn += letter
-        
-        recentlyDownloaded.append(fn+".mp4")
-        print("downloaded " + vid.title)
-
+        try:
+            vid = YouTube(link)
+            print("downloading " + vid.title)
+            soundStreams = vid.streams.filter(only_audio=True)
+            firstStream = str(soundStreams[0]).split(" ") #Get first stream
+            itag = firstStream[1][6:-1]#Get itag value
+            vid.streams.get_by_itag(itag).download()
+            fn = ""
+            for letter in vid.title:
+                if letter in settings['AllowedCharacters']:
+                    fn += letter
+            
+            recentlyDownloaded.append(fn+".mp4")
+            print("downloaded " + vid.title)
+        except Exception as e:
+            print("failed to download "+link)
 if(settings["JSONInput"]==True):
     download(getLinkTxt(linksR))
 elif(settings["JSONInput"]==False):
@@ -87,6 +89,8 @@ for fname in recentlyDownloaded:
         rename(fname,newName)
     except FileExistsError:
         print("could not rename file as it already exists")
+    except FileNotFoundError:
+        print("ERROR CODE 91")
 
     if settings["WipeMetadata"] == True:
         wipeMetadata(newName)
