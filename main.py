@@ -83,14 +83,17 @@ elif(settings["JSONInput"]==False):
 
 i=0
 for fname in recentlyDownloaded:
-    try:
-        print("renaming " + fname)
-        newName = fname[0:-4]+".mp3"
-        rename(fname,newName)
-    except FileExistsError:
-        print("could not rename file as it already exists")
-    except FileNotFoundError:
-        print("ERROR CODE 91")
+    newName = fname
+    if settings["Convert"]==True:
+        try:
+            print("renaming " + fname)
+        
+            newName = fname[0:-4]+".mp3"
+            rename(fname,newName)
+        except FileExistsError:
+            print("could not rename file as it already exists")
+        except FileNotFoundError:
+            print("ERROR CODE 91")
 
     if settings["WipeMetadata"] == True:
         wipeMetadata(newName)
