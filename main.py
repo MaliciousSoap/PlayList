@@ -4,6 +4,7 @@ from logging import exception
 from os import rename
 from tarfile import HeaderError
 from tempfile import TemporaryFile
+from xml.dom.minidom import Attr
 import pytube
 from pytube import YouTube
 from pytube import Playlist
@@ -37,8 +38,13 @@ def getLinkTxt(rawText):
             if len(playlist) == 0:
                 print(str(link) + " is an empty playlist. Either it is private, deleted, or some other error")
             for link in playlist:
-                print("appending "+ str(link))
-                vidsArr = vidsArr.append(link)
+                try:
+                    noSpaces = link.replace(" ","")
+                    noQuotes = noSpaces.replace('"','')
+                    print("appending "+ str(noQuotes))
+                    vidsArr.append(noQuotes)
+                except AttributeError as e:
+                    print("Link cannot be appended because "+ str(e))
         else:
             vidsArr.append(link)
     return vidsArr
@@ -60,7 +66,12 @@ def download(links):
         firstStream = str(soundStreams[0]).split(" ") #Get first stream
         itag = firstStream[1][6:-1]#Get itag value
         vid.streams.get_by_itag(itag).download()
-        recentlyDownloaded.append(vid.title+".mp4")
+        fn = ""
+        for letter in vid.title:
+            if letter in settings['AllowedCharacters']:
+                fn += letter
+        
+        recentlyDownloaded.append(fn+".mp4")
         print("downloaded " + vid.title)
 
 if(settings["JSONInput"]==True):
