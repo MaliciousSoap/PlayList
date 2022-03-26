@@ -1,9 +1,16 @@
 from asyncio import streams
+from email.errors import HeaderParseError
+from logging import exception
 from os import rename
+from tarfile import HeaderError
+from tempfile import TemporaryFile
+import pytube
 from pytube import YouTube
-import json
+from pytube import Playlist
 from mutagen.mp3 import MP3
-
+import shutil
+import json
+import os
 recentlyDownloaded = []
 
 settingsF = open("settings.json")
@@ -22,13 +29,28 @@ def getLinkTxt(rawText):
     noSpaces = rawText.replace(" ","")
     noQuotes = noSpaces.replace('"','')
     linksArr = noQuotes.split(",")
-    return linksArr
+    vidsArr = []
+    for link in linksArr:
+        if len(link) > 47:
+            print("playlist link found")
+            playlist = Playlist(link)
+            if len(playlist) == 0:
+                print(str(link) + " is an empty playlist. Either it is private, deleted, or some other error")
+            for link in playlist:
+                print("appending "+ str(link))
+                vidsArr = vidsArr.append(link)
+        else:
+            vidsArr.append(link)
+    return vidsArr
 
 def wipeMetadata(fname):
-    file = MP3(fname)
-    file.delete()
-    file.save()
-    print("wiped "+ fname)
+    try:
+        file = MP3(fname)
+        file.delete()
+        file.save()
+        print("wiped "+ fname)
+    except Exception as e:
+        print("could not wipe "+ fname + " due to <" + str(e) + ">")
 
 def download(links):
     for link in links:
@@ -48,16 +70,31 @@ elif(settings["JSONInput"]==False):
 
 i=0
 for fname in recentlyDownloaded:
-    #f = open(fname)
-    print("renaming " + fname)
-    newName = fname[0:-4]+".mp3"
-    rename(fname,newName)
-    wipeMetadata(newName)
+    try:
+        print("renaming " + fname)
+        newName = fname[0:-4]+".mp3"
+        rename(fname,newName)
+    except FileExistsError:
+        print("could not rename file as it already exists")
+
+    if settings["WipeMetadata"] == True:
+        wipeMetadata(newName)
+
     recentlyDownloaded[i] = newName
     i+=1
-#if(settings["WipeMetadata"]==True):
-#    for audioFiles in recentlyDownloaded:
-#        wipeMetadata(audioFiles[0])
-#        print("wiped successfully")
 
+if settings["FileDirectory"] != "default":
+    for fname in recentlyDownloaded:
+        try:
+            shutil.move(fname,settings["FileDirectory"])
+            print("moved "+fname + " to " + settings["FileDirectory"])
+        except Exception as e:
+            try:
+                print(fname + " exists, so was deleted")
+                os.replace(settings["FileDirectory"]+"\\"+fname,fname)
+                    
+                shutil.move(fname,settings["FileDirectory"])
+                print("moved "+fname + " to " + settings["FileDirectory"])
+            except Exception as e:
+                print("could not move file because "+ str(e))
 print("exited with code 0")
